@@ -1,0 +1,3 @@
+{
+  "stack": "Error: Text strings must be rendered within a <Text> component.\n    at RCTView (<anonymous>)\n    at anonymous (index.android.bundle:198:1148)\n    at anonymous (index.android.bundle:904:133)\n    at anonymous (index.android.bundle:903:141)\n    at anonymous (index.android.bundle:877:1083)\n    at c (index.android.bundle:990:920)\n    at anonymous (index.android.bundle:519:874)\n    at RNCSafeAreaProvider (<anonymous>)\n    at anonymous (index.android.bundle:1007:243)\n    at RNGestureHandlerRootView (<anonymous>)\n    at anonymous (index.android.bundle:783:129)\n    at u (<anonymous>)\n    at RCTView (<anonymous>)\n    at anonymous (index.android.bundle:198:1148)\n    at anonymous (index.android.bundle:197:807)"
+}
