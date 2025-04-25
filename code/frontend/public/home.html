@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home - Callify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --background: #0f172a;
+      --card-bg: rgba(255, 255, 255, 0.1);
+      --text-muted: rgba(255, 255, 255, 0.7);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, var(--background), #1e3a8a);
+      color: white;
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    nav {
+      width: 100%;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .logout-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Main Content */
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .welcome-banner {
+      background: linear-gradient(to right, #4f46e5, #7c3aed);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-banner::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .welcome-subtitle {
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Search Box */
+    .search-container {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .search-btn {
+      padding: 0.875rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .search-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    /* User List */
+    .users-container {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 0.5rem;
+      height: 1.5rem;
+      background: var(--primary);
+      border-radius: 0.25rem;
+    }
+
+    .user-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .user-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .user-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .user-avatar-small {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .user-details {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .user-phone {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .call-btn {
+      padding: 0.5rem 1rem;
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .call-btn:hover {
+      background: rgba(16, 185, 129, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .user-list {
+        grid-template-columns: 1fr;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <a href="/home" class="logo">Callify</a>
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <h1 class="welcome-title">Welcome back! 👋</h1>
+      <p class="welcome-subtitle">Start connecting with your contacts</p>
+    </div>
+    
+    <!-- Search Box -->
+    <div class="search-container">
+      <div class="search-box">
+        <input 
+          type="text" 
+          class="search-input" 
+          id="searchInput" 
+          placeholder="Search users by name or phone..." 
+          oninput="filterUsers()"
+        >
+        <button class="search-btn">Search</button>
+      </div>
+    </div>
+    
+    <!-- User List -->
+    <div class="users-container">
+      <h2 class="section-title">All Users</h2>
+      <div class="user-list" id="userList"></div>
+    </div>
+  </div>
+  <audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const myUsername = localStorage.getItem('username');
+
+    document.addEventListener('click', () => {
+      const ringtone = document.getElementById('ringtone');
+      if (ringtone) {
+        ringtone.play().then(() => {
+          ringtone.pause();
+          ringtone.currentTime = 0;
+        }).catch(err => {
+          console.log('🔇 Initial unlock skipped:', err.message);
+        });
+      }
+    }, { once: true });
+
+    if (!myUsername || myUsername.trim() === '') {
+      alert("Username is missing. Please login first.");
+      throw new Error("Username is missing.");
+    }
+
+    let socket;
+
+    fetch('/api/lan-ip')
+      .then(res => res.json())
+      .then(data => {
+        const lanIP = data.ip;
+
+        socket = io(`https://${lanIP}:8443`, {
+          query: { username: myUsername },
+          transports: ['websocket'],
+          secure: true  
+        });
+
+        socket.on('connect', () => {
+          console.log(`✅ Connected to socket.io as ${myUsername}, ID: ${socket.id}`);
+        });
+
+        fetch(`/api/current-user?username=${encodeURIComponent(myUsername)}`)
+          .then(res => res.json())
+          .then(currentUser => {
+            document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+          });
+
+        Promise.all([
+          fetch(`/api/current-user?username=${encodeURIComponent(myUsername)}`).then(res => res.json()),
+          fetch('/api/users').then(res => res.json())
+        ]).then(([currentUser, allUsers]) => {
+          window.allUsers = allUsers;
+          displayUsers(allUsers);
+        });
+
+        function displayUsers(users) {
+          const list = document.getElementById('userList');
+          list.innerHTML = '';
+          users.forEach(user => {
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+              <div class="user-avatar-small">${user.username.charAt(0).toUpperCase()}</div>
+              <div class="user-details">
+                <div class="user-name">${user.username}</div>
+                <div class="user-phone">${user.phone || 'Phone not available'}</div>
+              </div>
+              <button class="call-btn" onclick="startCallToUser('${user.username}', '${myUsername}')">
+                📞 Call
+              </button>
+            `;
+            list.appendChild(card);
+          });
+        }
+
+        window.startCallToUser = function (toUsername, fromUsername) {
+          console.log(`📞 Initiating call from ${fromUsername} to ${toUsername}`);
+          socket.emit('call-request', { fromUsername, toUsername });
+
+          socket.once('call-accepted', ({ toUsername: acceptedUser }) => {
+            console.log(`✅ Call accepted by ${acceptedUser}`);
+            if (acceptedUser === toUsername) {
+              const callUrl = `https://${window.location.hostname}:8443/index.html?from=${encodeURIComponent(fromUsername)}&to=${encodeURIComponent(toUsername)}&initiator=true`;
+              console.log("🌐 Opening call URL:", callUrl);
+              window.open(callUrl, '_blank');
+            }
+          });
+
+          socket.once('user-offline', ({ toUsername: offlineUser }) => {
+            if (offlineUser === toUsername) {
+              alert(`⚠️ ${offlineUser} is currently offline.`);
+            }
+          });
+
+          socket.once('call-rejected', ({ reason, rejectedBy }) => {
+            alert(`❌ ${rejectedBy} rejected your call: ${reason}`);
+          });
+        };
+
+        socket.on('incoming-call', ({ fromUsername }) => {
+          console.log(`📞 Incoming call from ${fromUsername}`);
+          showIncomingCallPopup(fromUsername);
+        });
+
+        function showIncomingCallPopup(fromUsername) {
+          const ringtone = document.getElementById('ringtone');
+          ringtone.loop = true;
+          ringtone.play().catch(e => console.warn('Autoplay prevented:', e));
+
+          const popup = document.createElement('div');
+          popup.id = 'incomingCallPopup';
+          popup.style.position = 'fixed';
+          popup.style.top = '50%';
+          popup.style.left = '50%';
+          popup.style.transform = 'translate(-50%, -50%)';
+          popup.style.padding = '30px 40px';
+          popup.style.background = '#1f2937';
+          popup.style.color = 'white';
+          popup.style.border = '1px solid #4b5563';
+          popup.style.borderRadius = '16px';
+          popup.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+          popup.style.fontFamily = 'Inter, sans-serif';
+          popup.style.zIndex = 9999;
+          popup.style.minWidth = '320px';
+          popup.style.maxWidth = '400px';
+          popup.style.textAlign = 'center';
+          popup.style.fontSize = '1.2rem';
+
+          popup.innerHTML = `
+            <div style="margin-bottom: 20px; font-size: 1.3rem; font-weight: 600;">
+              📞 ${fromUsername} is calling you
+            </div>
+            <div style="display: flex; justify-content: center; gap: 20px;">
+              <button id="acceptCallBtn" style="
+                padding: 12px 24px;
+                background-color: #10b981;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background 0.3s;
+              ">✅ Accept</button>
+              <button id="rejectCallBtn" style="
+                padding: 12px 24px;
+                background-color: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background 0.3s;
+              ">❌ Reject</button>
+            </div>
+          `;
+
+          document.body.appendChild(popup);
+
+          document.getElementById('acceptCallBtn').onclick = () => {
+            socket.emit('accept-call', {
+              fromUsername,
+              toUsername: myUsername
+            });
+            popup.remove();
+            ringtone.pause();
+            ringtone.currentTime = 0;
+            window.open(
+              `https://${window.location.hostname}:8443/index.html?from=${encodeURIComponent(myUsername)}&to=${encodeURIComponent(fromUsername)}`,
+              '_blank'
+            );
+          };
+
+          document.getElementById('rejectCallBtn').onclick = () => {
+            socket.emit('reject-call', {
+              toUsername: fromUsername,
+              fromUsername: myUsername
+            });
+            popup.remove();
+            ringtone.pause();
+            ringtone.currentTime = 0;
+          };
+          setTimeout(() => {
+            if (document.body.contains(popup)) {
+              popup.remove();
+              ringtone.pause();
+              ringtone.currentTime = 0;
+            }
+          }, 25000); 
+        }
+
+        window.filterUsers = function () {
+          const keyword = document.getElementById('searchInput').value.toLowerCase();
+          const filtered = window.allUsers.filter(user =>
+            user.username.toLowerCase().includes(keyword) ||
+            (user.phone && user.phone.toLowerCase().includes(keyword))
+          );
+          displayUsers(filtered);
+        };
+
+        window.logout = function () {
+          fetch('/logout', { method: 'POST' })
+            .then(() => window.location.href = '/login')
+            .catch(err => console.error('Logout error:', err));
+        };
+      });
+  </script>
+
+</body>
+</html>
