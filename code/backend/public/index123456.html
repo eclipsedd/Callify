@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Callify Video Call Test (Secure) - RecordRTC Edition</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: #2196f3;
+      }
+      video {
+        width: 45%;
+        margin: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #f0f0f0;
+      }
+      #videos {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+      }
+      #controls,
+      #recordingControls {
+        margin: 20px;
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      #login {
+        text-align: center;
+        margin: 30px auto;
+        max-width: 400px;
+      }
+      input[type="text"],
+      select {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-right: 10px;
+        font-size: 16px;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #0b7dda;
+      }
+      #startCall {
+        margin-left: 15px;
+      }
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        margin: 15px 0;
+      }
+      .toggle-label {
+        margin-left: 10px;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+      }
+      input:checked + .slider {
+        background-color: #2196f3;
+      }
+      input:focus + .slider {
+        box-shadow: 0 0 1px #2196f3;
+      }
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+      .slider.round {
+        border-radius: 34px;
+      }
+      .slider.round:before {
+        border-radius: 50%;
+      }
+      #spectrumCanvas {
+        border: 1px solid #ccc;
+        margin: 20px auto;
+        display: block;
+        border-radius: 8px;
+        background-color: rgb(20, 20, 20);
+      }
+      .status-indicator {
+        color: #666;
+        font-style: italic;
+        margin-top: 5px;
+        text-align: center;
+      }
+      #recordingControls {
+        display: block;
+      }
+      #recordingControls button {
+        margin-right: 10px;
+      }
+      /* =================== New: Translation Styles =================== */
+      /* Styling for the subtitle display */
+      #subtitle-box {
+        position: absolute;
+        bottom: 70px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+         background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  font-size: 18px;
+  border-radius: 5px;
+  z-index: 1000;
+  display: none;
+      }
+    </style>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fft.js/4.0.4/fft.min.js"></script>
+    <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
+  </head>
+  <body>
+    <h1>Callify Video Call Test (Secure)</h1>
+
+    <div id="login">
+      <input type="text" id="usernameInput" placeholder="Enter your username" />
+      <button id="loginBtn">Login</button>
+    </div>
+
+    <div id="controls" style="display: none">
+      <select id="userList">
+        <option value="">-- Select User to Call --</option>
+      </select>
+      <button id="startCall">Start Call</button>
+      <div id="callControls">
+        <div id="incomingCallControls" style="display: none">
+          <button id="acceptCall">Accept Call</button>
+          <button id="rejectCall">Reject Call</button>
+        </div>
+        <div id="activeCallControls" style="display: none">
+          <button id="endCall">End Call</button>
+          <button id="shareScreenBtn">📤 Share Screen</button>
+        </div>
+      </div>
+
+      <!-- =================== New: Translation Toggle =================== -->
+      <label id="translate-toggle">
+        <input type="checkbox" id="translationToggle" />
+        Translate
+      </label>
+      <!-- Subtitle box for incoming translated text -->
+      <div id="subtitle-box"></div>
+
+      <div class="toggle-container">
+        <label class="switch">
+          <input type="checkbox" id="noiseCancelToggle" />
+          <span class="slider round"></span>
+        </label>
+        <span class="toggle-label" id="noiseCancelToggleLabel">Noise Cancellation: OFF</span>
+      </div>
+      <p class="status-indicator" id="statusIndicator">Ready to make a call</p>
+    </div>
+
+    <div id="recordingControls">
+      <button id="startRecord">Start Recording</button>
+      <button id="stopRecord">Stop Recording</button>
+    </div>
+
+    <div id="videos" style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+      <div id="localVideoContainer" style="display: flex; flex-direction: column; align-items: center; width: 48%;">
+        <video id="localVideo" autoplay muted style="width: 100%; height: auto;"></video>
+        <div id="mediaControls" style="text-align: center; margin-top: 10px;">
+          <button id="toggleVideo">Turn Video Off</button>
+          <button id="toggleMic">Mute Mic</button>
+        </div>
+      </div>
+
+      <div id="remoteVideoContainer" style="display: flex; flex-direction: column; align-items: center; width: 48%;">
+        <video id="remoteVideo" autoplay style="width: 100%; height: auto;"></video>
+        <p id="remoteMicStatus" class="status-indicator" style="display: none; color: red;">Mic is OFF</p>
+        <p id="screenShareNotice" class="status-indicator" style="display: none; color: orange;">User is sharing screen</p>
+        <p id="recordingNotice" class="status-indicator" style="display: none; color: red;">
+          Recording in progress... <span id="recordingTime">00:00</span>
+        </p>
+        <p id="callEndedMessage" class="status-indicator" style="display: none; font-weight: bold; color: darkred;">
+          Call Ended
+        </p>
+        <button id="pipBtn">📺 Picture-in-Picture</button>
+      </div>
+    </div>
+
+    <canvas id="spectrumCanvas" width="600" height="100"></canvas>
+
+    <script>
+      const socket = io(window.location.origin, {
+        secure: true,
+        reconnection: true,
+      });
+
+      let localStream;
+      let rawStream;
+      let peerConnection;
+      let pendingCandidates = [];
+      let myUsername = '';
+      let targetUsername = '';
+      let audioWorkletNode = null;
+      let workletActive = false;
+      let recorder;  // RecordRTC instance
+
+      const localVideo = document.getElementById('localVideo');
+      const remoteVideo = document.getElementById('remoteVideo');
+      const loginDiv = document.getElementById('login');
+      const usernameInput = document.getElementById('usernameInput');
+      const loginBtn = document.getElementById('loginBtn');
+      const controlsDiv = document.getElementById('controls');
+      const userListSelect = document.getElementById('userList');
+      const startCallButton = document.getElementById('startCall');
+      const noiseCancelToggle = document.getElementById('noiseCancelToggle');
+      const statusIndicator = document.getElementById('statusIndicator');
+      const startRecordButton = document.getElementById('startRecord');
+      const stopRecordButton = document.getElementById('stopRecord');
+      const acceptCallBtn = document.getElementById('acceptCall');
+      const rejectCallBtn = document.getElementById('rejectCall');
+      const endCallBtn = document.getElementById('endCall');
+      const toggleVideoBtn = document.getElementById('toggleVideo');
+      const toggleMicBtn = document.getElementById('toggleMic');
+      const incomingCallControls = document.getElementById('incomingCallControls');
+      const activeCallControls = document.getElementById('activeCallControls');
+      const remoteMicStatus = document.getElementById('remoteMicStatus');
+      const recordingNotice = document.getElementById('recordingNotice');
+      const recordingTimeSpan = document.getElementById('recordingTime');
+      const callEndedMessage = document.getElementById('callEndedMessage');
+      let recordingInterval;
+
+      // Audio processing setup (noise cancellation and spectrum visualization)
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const canvas = document.getElementById('spectrumCanvas');
+      const canvasCtx = canvas.getContext('2d');
+
+      const pipBtn = document.getElementById('pipBtn');
+
+      const shareScreenBtn = document.getElementById('shareScreenBtn');
+      let isScreenSharing = false;
+      let originalVideoTrack = null;
+
+      if (!navigator.mediaDevices.getDisplayMedia) {
+        shareScreenBtn.style.display = 'none';
+      }
+
+      shareScreenBtn.addEventListener('click', async () => {
+        if (!peerConnection) return;
+
+        if (!isScreenSharing) {
+          try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenTrack = screenStream.getVideoTracks()[0];
+            originalVideoTrack = localStream.getVideoTracks()[0];
+
+            // Replace the local track in the connection
+            const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+            sender.replaceTrack(screenTrack);
+
+            // Show screen locally
+            localVideo.srcObject = screenStream;
+
+            // Listen for when user stops screen share
+            screenTrack.onended = () => {
+              sender.replaceTrack(originalVideoTrack);
+              localVideo.srcObject = localStream;
+              isScreenSharing = false;
+              socket.emit('screen-share-stopped', { toUsername: targetUsername });
+              shareScreenBtn.textContent = '📤 Share Screen';
+            };
+
+            isScreenSharing = true;
+            socket.emit('screen-share-started', { toUsername: targetUsername });
+            shareScreenBtn.textContent = '🧍 Back to Camera';
+          } catch (err) {
+            console.error('Error sharing screen:', err);
+          }
+        } else {
+          // Stop screen sharing manually
+          const sender = peerConnection.getSenders().find(s => s.track.kind === 'video');
+          if (originalVideoTrack) sender.replaceTrack(originalVideoTrack);
+          localVideo.srcObject = localStream;
+          isScreenSharing = false;
+          shareScreenBtn.textContent = '📤 Share Screen';
+        }
+      });
+
+      pipBtn.addEventListener('click', async () => {
+        try {
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+          } else {
+            await remoteVideo.requestPictureInPicture();
+          }
+        } catch (error) {
+          console.error('PiP failed:', error);
+          statusIndicator.textContent = 'PiP not supported or blocked.';
+        }
+      });
+
+      function drawSpectrum() {
+        requestAnimationFrame(drawSpectrum);
+        analyser.getByteFrequencyData(dataArray);
+        canvasCtx.fillStyle = 'rgb(20, 20, 20)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = dataArray[i];
+          const hue = (i / bufferLength) * 360;
+          canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+          canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+          x += barWidth + 1;
+        }
+      }
+      drawSpectrum();
+
+      async function setupAudioWorklet() {
+        try {
+          await audioContext.audioWorklet.addModule('spectral-filter-processor.js');
+          console.log('Audio worklet registered successfully');
+          return true;
+        } catch (error) {
+          console.error('Failed to setup audio worklet:', error);
+          statusIndicator.textContent = 'Error setting up audio processing';
+          return false;
+        }
+      }
+
+      async function getLocalMedia() {
+        try {
+          statusIndicator.textContent = 'Setting up media...';
+
+          // 🔄 Always get fresh stream
+          rawStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          videoTrack = rawStream.getVideoTracks()[0]; // ✅ Ensure video is always updated
+
+          await audioContext.resume();
+
+          if (!workletActive) {
+            workletActive = await setupAudioWorklet();
+            if (!workletActive) {
+              throw new Error('Could not initialize audio processing');
+            }
+          }
+
+          const source = audioContext.createMediaStreamSource(rawStream);
+          const dest = audioContext.createMediaStreamDestination();
+
+          // 🔌 Disconnect previous audio nodes
+          try { analyser.disconnect(); } catch (e) {}
+          if (audioWorkletNode) {
+            try { audioWorkletNode.disconnect(); } catch (e) {}
+          }
+
+          let newAudioTrack;
+
+          // 🎛️ Noise Cancellation Toggle
+          if (noiseCancelToggle.checked) {
+            audioWorkletNode = new AudioWorkletNode(audioContext, 'spectral-filter-processor');
+            audioWorkletNode.port.postMessage({ type: 'setProcessing', enabled: true });
+
+            const nyquist = audioContext.sampleRate / 2;
+            const cutoffNormalized = 6000 / (audioContext.sampleRate / 2); // preserves full voice range
+            audioWorkletNode.port.postMessage({ type: 'setCutoff', cutoff: cutoffNormalized });
+
+            source.connect(audioWorkletNode);
+            audioWorkletNode.connect(dest);
+            audioWorkletNode.connect(analyser);
+
+            console.log('Noise cancellation ON');
+            statusIndicator.textContent = 'FFT-based noise cancellation active (4kHz cutoff)';
+            newAudioTrack = dest.stream.getAudioTracks()[0];
+          } else {
+            // 🔊 Plain audio
+            source.connect(dest);
+            source.connect(analyser);
+
+            console.log('Noise cancellation OFF');
+            statusIndicator.textContent = 'Standard audio processing';
+            newAudioTrack = dest.stream.getAudioTracks()[0];
+          }
+
+          // 🎥 Build or update localStream
+          if (localStream) {
+            const oldAudioTrack = localStream.getAudioTracks()[0];
+            if (oldAudioTrack) localStream.removeTrack(oldAudioTrack);
+            localStream.addTrack(newAudioTrack);
+          } else {
+            localStream = new MediaStream([videoTrack, newAudioTrack]);
+            localVideo.srcObject = localStream;
+          }
+
+          // 🔄 Update peer connection if call is active
+          if (peerConnection && peerConnection.connectionState === 'connected') {
+            const senders = peerConnection.getSenders();
+            const audioTrack = localStream.getAudioTracks()[0];
+
+            senders.forEach(sender => {
+              if (sender.track && sender.track.kind === 'audio') {
+                console.log('Replacing audio track in active call');
+                sender.replaceTrack(audioTrack);
+              }
+            });
+          }
+
+          // ✅ Optional: Update checkbox label
+          if (typeof noiseCancelToggleLabel !== 'undefined') {
+            noiseCancelToggleLabel.textContent = noiseCancelToggle.checked
+              ? 'Noise Cancellation: ON'
+              : 'Noise Cancellation: OFF';
+          }
+
+        } catch (error) {
+          console.error('Error processing media:', error);
+          statusIndicator.textContent = 'Error setting up media: ' + error.message;
+        }
+      }
+
+      function createPeerConnection() {
+        if (!localStream) return;
+        // peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        peerConnection = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            {
+              urls: 'turn:global.relay.metered.ca:443',
+              username: 'openai',
+              credential: 'openai123',
+            },
+          ],
+        });
+
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream);
+        });
+        
+        peerConnection.ontrack = event => {
+          remoteVideo.srcObject = event.streams[0];
+          statusIndicator.textContent = 'Connected to remote peer';
+        
+          // Capture remote audio properly
+          const remoteAudio = new Audio();
+          remoteAudio.srcObject = event.streams[0];
+          remoteAudio.autoplay = true;
+          remoteAudio.muted = false;
+          remoteAudio.style.display = 'none';
+          document.body.appendChild(remoteAudio);
+        };
+        peerConnection.onicecandidate = event => {
+          if (event.candidate) {
+            socket.emit('ice-candidate', {
+              toUsername: targetUsername,
+              candidate: event.candidate,
+              fromUsername: myUsername,
+            });
+          }
+        };
+        peerConnection.onconnectionstatechange = () => {
+          console.log('Connection state:', peerConnection.connectionState);
+          if (peerConnection.connectionState === 'connected') {
+            statusIndicator.textContent = 'Call connected';
+          } else if (
+            peerConnection.connectionState === 'disconnected' ||
+            peerConnection.connectionState === 'failed'
+          ) {
+            statusIndicator.textContent = 'Call disconnected';
+          }
+        };
+      }
+
+      loginBtn.addEventListener('click', async () => {
+        await audioContext.resume();
+        const username = usernameInput.value.trim();
+        if (username) {
+          myUsername = username;
+          socket.emit('login', { username: myUsername });
+          loginDiv.style.display = 'none';
+          controlsDiv.style.display = 'block';
+          getLocalMedia();
+        } else {
+          alert('Please enter a username.');
+        }
+      });
+
+      noiseCancelToggle.addEventListener('change', () => {
+        getLocalMedia();
+      });
+
+      socket.on('online-users', users => {
+        userListSelect.innerHTML = `<option value="">-- Select User to Call --</option>`;
+        for (const [username, id] of Object.entries(users)) {
+          if (username !== myUsername) {
+            const option = document.createElement('option');
+            option.value = username;
+            option.textContent = username;
+            userListSelect.appendChild(option);
+          }
+        }
+      });
+
+      userListSelect.addEventListener('change', event => {
+        targetUsername = event.target.value;
+      });
+
+      async function startCall() {
+        callEndedMessage.style.display = 'none';
+        activeCallControls.style.display = 'block';
+        statusIndicator.textContent = 'Initiating call...';
+        createPeerConnection();
+        try {
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          socket.emit('call-user', {
+            toUsername: targetUsername,
+            offer: offer,
+            fromUsername: myUsername,
+          });
+        } catch (error) {
+          console.error('Error creating offer:', error);
+          statusIndicator.textContent = 'Call failed: ' + error.message;
+        }
+      }
+
+      startCallButton.addEventListener('click', () => {
+        if (targetUsername) {
+          startCall();
+        } else {
+          alert('Please select a user to call.');
+        }
+      });
+
+      endCallBtn.addEventListener('click', () => {
+        if (peerConnection) {
+          peerConnection.close();
+          peerConnection = null;
+          remoteVideo.srcObject = null;
+          remoteVideo.style.backgroundColor = 'black';
+          callEndedMessage.style.display = 'block';
+          activeCallControls.style.display = 'none';
+          statusIndicator.textContent = 'Call ended';
+          socket.emit('call-ended', { toUsername: targetUsername });
+        }
+      });
+
+      socket.on('call-made', async data => {
+        statusIndicator.textContent = 'Incoming call from ' + data.callerUsername;
+        targetUsername = data.callerUsername;
+        incomingCallControls.style.display = 'block';
+
+        acceptCallBtn.onclick = async () => {
+          activeCallControls.style.display = 'block';
+          callEndedMessage.style.display = 'none';
+          incomingCallControls.style.display = 'none';
+          if (!peerConnection) createPeerConnection();
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+          while (pendingCandidates.length) {
+            const candidate = pendingCandidates.shift();
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          socket.emit('make-answer', {
+            toUsername: data.callerUsername,
+            answer,
+            fromUsername: myUsername,
+          });
+          activeCallControls.style.display = 'block';
+        };
+
+        rejectCallBtn.onclick = () => {
+          incomingCallControls.style.display = 'none';
+          socket.emit('reject-call', {
+            toUsername: data.callerUsername,
+            fromUsername: myUsername,
+            reason: 'User rejected the call',
+          });
+          statusIndicator.textContent = 'Call rejected';
+        };
+      });
+
+      socket.on('call-rejected', data => {
+        statusIndicator.textContent = `Call rejected by ${data.rejectedBy}: ${data.reason}`;
+      });
+
+      socket.on('answer-made', async data => {
+        activeCallControls.style.display = 'block';
+        callEndedMessage.style.display = 'none';
+        statusIndicator.textContent = 'Call answered by ' + data.answererUsername;
+        try {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+          while (pendingCandidates.length) {
+            const candidate = pendingCandidates.shift();
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+        } catch (error) {
+          console.error('Error setting remote description from answer', error);
+          statusIndicator.textContent = 'Call setup failed: ' + error.message;
+        }
+      });
+
+      socket.on('ice-candidate', async data => {
+        if (peerConnection && peerConnection.remoteDescription?.type) {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (error) {
+            console.error('Error adding ICE candidate', error);
+          }
+        } else {
+          pendingCandidates.push(data.candidate);
+        }
+      });
+
+      socket.on('update-mic-status', data => {
+        if (
+          peerConnection &&
+          peerConnection.connectionState === 'connected' &&
+          remoteVideo.srcObject // make sure the stream is showing
+        ) {
+          remoteMicStatus.style.display = data.muted ? 'block' : 'none';
+        } else {
+          remoteMicStatus.style.display = 'none';
+        }
+      });
+
+      socket.on('recording-started', () => {
+        const beep = new Audio('https://cdn.freesound.org/previews/341/341695_5260877-lq.mp3');
+        beep.play();
+        recordingNotice.style.display = 'block';
+        startRecordingNoticeTimer();
+      });
+
+      socket.on('recording-stopped', () => {
+        stopRecordingNoticeTimer();
+      });
+
+      socket.on('call-ended', () => {
+        if (peerConnection) {
+          peerConnection.close();
+          peerConnection = null;
+        }
+        remoteVideo.srcObject = null;
+        remoteVideo.style.backgroundColor = 'black';
+        callEndedMessage.style.display = 'block';
+        activeCallControls.style.display = 'none';
+        statusIndicator.textContent = 'Call ended';
+        remoteMicStatus.style.display = 'none';
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture().catch(() => {});
+        }
+      });
+
+      socket.on('screen-share-started', () => {
+        document.getElementById('screenShareNotice').style.display = 'block';
+      });
+
+      socket.on('screen-share-stopped', () => {
+        document.getElementById('screenShareNotice').style.display = 'none';
+      });
+
+      socket.on('recording-started', () => {
+        playBeep();
+        recordingNotice.style.display = 'block';
+        startRecordingNoticeTimer();
+      });
+
+      socket.on('recording-stopped', () => {
+        playBeep();
+        stopRecordingNoticeTimer();
+      });
+
+      function playBeep() {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // 1000 Hz
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2); // 0.2 seconds beep
+      }
+      
+      recordingInterval = null;
+      let seconds = 0;
+      function startRecordingNoticeTimer() {
+        seconds = 0;
+        clearInterval(recordingInterval);
+        recordingInterval = setInterval(() => {
+          seconds++;
+          const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const secs = String(seconds % 60).padStart(2, '0');
+          recordingTimeSpan.textContent = `${mins}:${secs}`;
+        }, 1000);
+      }
+
+      startRecordButton.addEventListener('click', () => {
+        if (!localStream || !remoteVideo.srcObject || !peerConnection) {
+          statusIndicator.textContent = 'Streams not ready for recording';
+          return;
+        }
+        playBeep();
+        const oldCanvas = document.getElementById('recordingCanvas');
+        if (oldCanvas) {
+          oldCanvas.remove();
+        }
+        const canvas = document.createElement('canvas');
+        canvas.id = 'recordingCanvas';
+        canvas.width = 1280;
+        canvas.height = 720;
+        const ctx = canvas.getContext('2d');
+      
+        document.body.appendChild(canvas);
+      
+        function drawVideos() {
+          ctx.drawImage(remoteVideo, 0, 0, canvas.width / 2, canvas.height);  // Left side remote
+          ctx.drawImage(localVideo, canvas.width / 2, 0, canvas.width / 2, canvas.height);  // Right side local
+          requestAnimationFrame(drawVideos);
+        }
+      
+        drawVideos();
+      
+        const canvasStream = canvas.captureStream(30);  
+      
+        const audioContext = new AudioContext();
+        const audioDestination = audioContext.createMediaStreamDestination();
+      
+        // Add local audio
+        localStream.getAudioTracks().forEach(track => {
+          const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+          source.connect(audioDestination);
+        });
+      
+        // Add remote audio from peerConnection receivers
+        peerConnection.getReceivers().forEach(receiver => {
+          if (receiver.track && receiver.track.kind === 'audio') {
+            const source = audioContext.createMediaStreamSource(new MediaStream([receiver.track]));
+            source.connect(audioDestination);
+          }
+        });
+      
+        const finalStream = new MediaStream();
+      
+        canvasStream.getVideoTracks().forEach(track => finalStream.addTrack(track));
+        audioDestination.stream.getAudioTracks().forEach(track => finalStream.addTrack(track));
+      
+        recorder = RecordRTC(finalStream, {
+          type: 'video',
+          mimeType: 'video/webm',
+        });
+      
+        recorder.startRecording();
+        socket.emit('recording-started', { toUsername: targetUsername });
+        recordingNotice.style.display = 'block';
+        startRecordingNoticeTimer();
+        statusIndicator.textContent = 'Recording local + remote video & audio properly...';
+        console.log('Recording started with video merged & audio mixed.');
+      });   
+
+      function stopRecordingNoticeTimer() {
+        if (recordingInterval) {
+          clearInterval(recordingInterval);
+          recordingInterval = null;
+        }
+        recordingNotice.style.display = 'none';
+        recordingTimeSpan.textContent = '00:00';
+      }
+      
+      stopRecordButton.addEventListener('click', () => {
+        if (recorder) {
+          recorder.stopRecording(() => {
+            playBeep();
+            const blob = recorder.getBlob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'recording.webm';
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+            statusIndicator.textContent = 'Recording saved.';
+            console.log('RecordRTC recording stopped.');
+            socket.emit('recording-stopped', { toUsername: targetUsername });
+            stopRecordingNoticeTimer();
+            const canvas = document.getElementById('recordingCanvas');
+            if (canvas) canvas.remove();
+          });
+        }
+      });
+
+      toggleVideoBtn.addEventListener('click', () => {
+        const videoTrack = localStream?.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = !videoTrack.enabled;
+          toggleVideoBtn.textContent = videoTrack.enabled ? 'Turn Video Off' : 'Turn Video On';
+        }
+      });
+
+      toggleMicBtn.addEventListener('click', () => {
+        const audioTrack = localStream?.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          toggleMicBtn.textContent = audioTrack.enabled ? 'Mute Mic' : 'Unmute Mic';
+          if (peerConnection && peerConnection.connectionState === 'connected') {
+            socket.emit('update-mic-status', {
+              toUsername: targetUsername,
+              muted: !audioTrack.enabled,
+            });
+          }
+        }
+      });
+
+      if (peerConnection) {
+        peerConnection.onconnectionstatechange = () => {
+          if (peerConnection.connectionState === 'connected') {
+            activeCallControls.style.display = 'block';
+          } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+            activeCallControls.style.display = 'none';
+          }
+        };
+      }
+
+      // =================== New: Translation Functionality ===================
+      // Variables for speech recognition and translation
+let recognition;
+let isTranslating = false;
+const translationToggle = document.getElementById('translationToggle');
+
+// Toggle the translation feature on/off
+translationToggle.addEventListener('change', () => {
+  isTranslating = translationToggle.checked;
+  
+  if (isTranslating) {
+    startRecognition();
+    document.getElementById('translate-toggle').style.color = 'green';
+    statusIndicator.textContent = 'Translation active - listening for speech';
+  } else {
+    stopRecognition();
+    document.getElementById('translate-toggle').style.color = '';
+    statusIndicator.textContent = 'Translation turned off';
+  }
+});
+
+// Start speech recognition to capture your English speech
+function startRecognition() {
+  try {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      console.error('Speech recognition not supported in this browser');
+      statusIndicator.textContent = 'Speech recognition not supported in this browser';
+      return;
+    }
+    
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onstart = () => {
+      console.log('Speech recognition started');
+    };
+    
+    recognition.onresult = async (event) => {
+      // Only process final results to avoid stuttering translations
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        
+        // Only translate if it's a final result
+        if (event.results[i].isFinal) {
+          console.log('Final transcript:', transcript);
+          statusIndicator.textContent = 'Translating: "' + transcript + '"';
+          
+          try {
+            const translated = await translateToHindi(transcript);
+            console.log('Translated text:', translated);
+            
+            if (targetUsername && translated) {
+              socket.emit('translated-text', {
+                toUsername: targetUsername,
+                text: translated
+              });
+              
+              // Show locally what was sent (for debugging)
+              const subtitleBox = document.getElementById('subtitle-box');
+              subtitleBox.style.display = 'block';
+              subtitleBox.innerHTML = `<small><em>Sent:</em></small><br>${translated}`;
+              
+              clearTimeout(window.subtitleTimeout);
+              window.subtitleTimeout = setTimeout(() => {
+                subtitleBox.style.display = 'none';
+              }, 3000);
+            }
+          } catch (error) {
+            console.error('Translation failed:', error);
+            statusIndicator.textContent = 'Translation failed: ' + error.message;
+          }
+        }
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      statusIndicator.textContent = 'Recognition error: ' + event.error;
+    };
+    
+    recognition.onend = () => {
+      console.log('Speech recognition ended');
+      // Restart recognition if still translating (to keep it continuous)
+      if (isTranslating) {
+        recognition.start();
+      }
+    };
+    
+    recognition.start();
+    
+  } catch (e) {
+    console.error('Failed to start speech recognition:', e);
+    statusIndicator.textContent = 'Failed to start speech recognition: ' + e.message;
+  }
+}
+
+// Stop speech recognition
+function stopRecognition() {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+}
+
+// Translate English text to Hindi using a free API
+async function translateToHindi(text) {
+  try {
+    // Using MyMemory API instead - free with reasonable limits
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|hi`, {
+      method: 'GET'
+    });
+    
+    const data = await res.json();
+    console.log('Translation API response:', data);
+    
+    if (data.responseStatus === 200) {
+      return data.responseData.translatedText;
+    } else {
+      throw new Error(data.responseDetails || 'Translation service error');
+    }
+  } catch (e) {
+    console.error('Translation error:', e);
+    return '[Translation failed]';
+  }
+}
+
+// Only create the subtitle box once
+if (!document.getElementById('subtitle-box')) {
+  const subtitleBox = document.createElement('div');
+  subtitleBox.id = 'subtitle-box';
+  subtitleBox.style.position = 'absolute';
+  subtitleBox.style.bottom = '70px';
+  subtitleBox.style.left = '0';
+  subtitleBox.style.width = '100%';
+  subtitleBox.style.textAlign = 'center';
+  subtitleBox.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  subtitleBox.style.color = 'white';
+  subtitleBox.style.padding = '10px';
+  subtitleBox.style.fontSize = '18px';
+  subtitleBox.style.borderRadius = '5px';
+  subtitleBox.style.zIndex = '1000';
+  subtitleBox.style.display = 'none';
+  
+  document.getElementById('remoteVideoContainer').appendChild(subtitleBox);
+}
+
+// Display incoming translated text as subtitles
+socket.on('receive-translated-text', ({ text }) => {
+  console.log('Received translated text:', text);
+  const subtitleBox = document.getElementById('subtitle-box');
+  
+  if (!text || text.trim() === '') return;
+  
+  subtitleBox.style.display = 'block';
+  subtitleBox.innerHTML = text;
+  
+  clearTimeout(window.subtitleTimeout);
+  window.subtitleTimeout = setTimeout(() => {
+    subtitleBox.style.display = 'none';
+  }, 5000); // Show for 5 seconds
+});
+      // =================== End Translation Functionality ===================
+    </script>
+  </body>
+</html>

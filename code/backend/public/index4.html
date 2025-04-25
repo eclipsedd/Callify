@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Callify Video Call Test (Secure)</title>
+    <style>
+      video {
+        width: 45%;
+        margin: 10px;
+        border: 1px solid #ccc;
+      }
+      #videos {
+        display: flex;
+        justify-content: space-around;
+      }
+      #controls {
+        margin: 20px;
+      }
+    </style>
+    <!-- Include Socket.io client library over HTTPS -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h1>Callify Video Call Test (Secure)</h1>
+
+    <div id="login">
+      <input type="text" id="usernameInput" placeholder="Enter your username" />
+      <button id="loginBtn">Login</button>
+    </div>
+
+    <div id="controls" style="display: none">
+      <select id="userList">
+        <option value="">-- Select User to Call --</option>
+      </select>
+      <button id="startCall">Start Call</button>
+    </div>
+
+    <div id="videos">
+      <video id="localVideo" autoplay muted></video>
+      <video id="remoteVideo" autoplay></video>
+    </div>
+
+    <script>
+      // IMPORTANT: Update with your source device's network IP and secure port.
+      // For example, if your HTTPS server runs on port 8443 and your IP is 172.20.10.9:
+      const socket = io('https://172.20.10.9:8443');
+
+      let localStream;
+      let peerConnection;
+      let pendingCandidates = []; // Queue for ICE candidates until remote description is set
+      let myUsername = '';
+      let targetUsername = '';
+      const configuration = {
+        iceServers: [{urls: 'stun:stun.l.google.com:19302'}],
+      };
+
+      const localVideo = document.getElementById('localVideo');
+      const remoteVideo = document.getElementById('remoteVideo');
+      const loginDiv = document.getElementById('login');
+      const usernameInput = document.getElementById('usernameInput');
+      const loginBtn = document.getElementById('loginBtn');
+      const controlsDiv = document.getElementById('controls');
+      const userListSelect = document.getElementById('userList');
+      const startCallButton = document.getElementById('startCall');
+
+      // Capture local media (video & audio)
+      async function getLocalMedia() {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          localVideo.srcObject = localStream;
+        } catch (error) {
+          console.error('Error accessing media devices.', error);
+        }
+      }
+
+      // Create RTCPeerConnection and add local media tracks
+      function createPeerConnection() {
+        if (!localStream) {
+          console.error(
+            'Local stream is not available. Make sure getLocalMedia() is complete.',
+          );
+          return;
+        }
+        peerConnection = new RTCPeerConnection(configuration);
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream);
+        });
+        peerConnection.ontrack = event => {
+          remoteVideo.srcObject = event.streams[0];
+        };
+        peerConnection.onicecandidate = event => {
+          if (event.candidate) {
+            console.log('Sending ICE candidate:', event.candidate);
+            socket.emit('ice-candidate', {
+              toUsername: targetUsername,
+              candidate: event.candidate,
+              fromUsername: myUsername,
+            });
+          }
+        };
+      }
+
+      // Login button event: log in with username and get local media
+      loginBtn.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        if (username) {
+          myUsername = username;
+          socket.emit('login', {username: myUsername});
+          loginDiv.style.display = 'none';
+          controlsDiv.style.display = 'block';
+          getLocalMedia();
+        } else {
+          alert('Please enter a username.');
+        }
+      });
+
+      // Update online users list
+      socket.on('online-users', users => {
+        userListSelect.innerHTML = `<option value="">-- Select User to Call --</option>`;
+        for (const [username, id] of Object.entries(users)) {
+          if (username !== myUsername) {
+            const option = document.createElement('option');
+            option.value = username;
+            option.textContent = username;
+            userListSelect.appendChild(option);
+          }
+        }
+      });
+
+      userListSelect.addEventListener('change', event => {
+        targetUsername = event.target.value;
+      });
+
+      // Caller: create offer and send to callee
+      async function startCall() {
+        createPeerConnection();
+        try {
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          console.log('Sending offer:', offer);
+          socket.emit('call-user', {
+            toUsername: targetUsername,
+            offer: offer,
+            fromUsername: myUsername,
+          });
+        } catch (error) {
+          console.error('Error creating offer:', error);
+        }
+      }
+
+      startCallButton.addEventListener('click', () => {
+        if (targetUsername) {
+          startCall();
+        } else {
+          alert('Please select a user to call.');
+        }
+      });
+
+      // When receiving an offer, set remote description, process queued ICE candidates, create answer, and send it back.
+      socket.on('call-made', async data => {
+        console.log('Incoming call from:', data.callerUsername);
+        if (!peerConnection) {
+          createPeerConnection();
+        }
+        try {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.offer),
+          );
+          // Process any queued ICE candidates
+          while (pendingCandidates.length) {
+            const candidate = pendingCandidates.shift();
+            try {
+              await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate),
+              );
+            } catch (error) {
+              console.error('Error adding queued ICE candidate', error);
+            }
+          }
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          socket.emit('make-answer', {
+            toUsername: data.callerUsername,
+            answer: answer,
+            fromUsername: myUsername,
+          });
+          console.log('Answer sent:', answer);
+        } catch (error) {
+          console.error('Error handling incoming call', error);
+        }
+      });
+
+      // When receiving an answer, set remote description and process any queued ICE candidates.
+      socket.on('answer-made', async data => {
+        console.log('Answer received:', data.answer);
+        try {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.answer),
+          );
+          while (pendingCandidates.length) {
+            const candidate = pendingCandidates.shift();
+            try {
+              await peerConnection.addIceCandidate(
+                new RTCIceCandidate(candidate),
+              );
+            } catch (error) {
+              console.error('Error adding queued ICE candidate', error);
+            }
+          }
+        } catch (error) {
+          console.error('Error setting remote description from answer', error);
+        }
+      });
+
+      // Handle incoming ICE candidates.
+      socket.on('ice-candidate', async data => {
+        console.log('Received ICE candidate:', data.candidate);
+        if (
+          peerConnection &&
+          peerConnection.remoteDescription &&
+          peerConnection.remoteDescription.type
+        ) {
+          try {
+            await peerConnection.addIceCandidate(
+              new RTCIceCandidate(data.candidate),
+            );
+          } catch (error) {
+            console.error('Error adding ICE candidate', error);
+          }
+        } else {
+          // If remote description not yet set, queue the candidate.
+          pendingCandidates.push(data.candidate);
+        }
+      });
+    </script>
+  </body>
+</html>
