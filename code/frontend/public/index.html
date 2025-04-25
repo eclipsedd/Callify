@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Callify - Video Calling App</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --background: #0f172a;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, var(--background), #1e3a8a, #7c3aed);
+      color: white;
+      min-height: 100vh;
+    }
+    
+    /* Navigation */
+    nav {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+    }
+    
+    .logo {
+      font-size: 1.875rem;
+      font-weight: 700;
+      margin-left: 1rem;
+    }
+    
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .nav-button {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .nav-button.ghost {
+      background: transparent;
+      color: white;
+    }
+    
+    .nav-button.ghost:hover {
+      color: var(--primary);
+    }
+    
+    .nav-button.primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .nav-button.primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    /* Carousel */
+    .carousel-container {
+      position: relative;
+      height: 100vh;
+    }
+    
+    .slick-slide {
+      height: 100vh;
+      display: flex !important;
+      align-items: top;
+      justify-content: top;
+      position: relative;
+    }
+    
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      opacity: 0.8;
+    }
+    
+    .slide-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+    }
+    
+    .slide-content {
+      position: relative;
+      z-index: 10;
+      text-align: top;
+      padding: 0 1rem;
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+    
+    .feature-icon {
+      font-size: 4rem; 
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    
+    .feature-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-desc {
+      font-size: 1.25rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Auth Card */
+    .auth-card {
+      position: absolute;
+      bottom: 1%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 28rem;
+      z-index: 60;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(24px);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .auth-icon {
+      width: 5rem;          /* Increased from 2.5rem */
+      height: 4rem;         /* Increased from 2.5rem */
+      font-size: 4rem;      /* Added this to control emoji size */
+      margin: 0 auto 1.5rem;
+      color: var(--primary);
+      display: flex;        /* Added for better centering */
+      align-items: center;  /* Center vertically */
+      justify-content: center; /* Center horizontally */
+    }
+    
+    .auth-title {
+      font-size: 1.25rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      margin-bottom: 0.25rem;
+    }
+    
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .form-input.error {
+      border-color: #ef4444;
+    }
+    
+    .error-message {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    
+    .submit-button {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .submit-button:hover {
+      background: var(--primary-dark);
+    }
+    
+    .submit-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .auth-footer {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav>
+    <div class="logo">Callify</div>
+    <div class="nav-buttons">
+      <a href="/login" class="nav-button ghost">Login</a>
+      <a href="/signup" class="nav-button primary">Sign Up</a>
+    </div>
+  </nav>
+
+  <!-- Hero Carousel -->
+  <div class="carousel-container">
+    <div class="carousel" id="featureCarousel">
+      <!-- Slide 1 -->
+      <div class="slide">
+        <div class="slide-bg" style="background: linear-gradient(to right, #4f46e5, #7c3aed);"></div>
+        <div class="slide-overlay"></div>
+        <div class="slide-content">
+          <div class="feature-icon">🎥</div>
+          <h2 class="feature-title">Crystal Clear Calls</h2>
+          <p class="feature-desc">Experience HD video quality for more natural conversations.</p>
+        </div>
+      </div>
+      
+      <!-- Slide 2 -->
+      <div class="slide">
+        <div class="slide-bg" style="background: linear-gradient(to right, #1e3a8a, #4f46e5);"></div>
+        <div class="slide-overlay"></div>
+        <div class="slide-content">
+          <div class="feature-icon">🔇</div>
+          <h2 class="feature-title">Noise Cancellation</h2>
+          <p class="feature-desc">Advanced noise cancellation for crystal clear audio.</p>
+        </div>
+      </div>
+      
+      <!-- Slide 3 -->
+      <div class="slide">
+        <div class="slide-bg" style="background: linear-gradient(to right, #7c3aed, #a78bfa);"></div>
+        <div class="slide-overlay"></div>
+        <div class="slide-content">
+          <div class="feature-icon">👥</div>
+          <h2 class="feature-title">Easy Connections</h2>
+          <p class="feature-desc">Search users by name or phone number to instantly connect.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Card Overlay -->
+    <div class="auth-card">
+      <div class="auth-icon">👋</div>
+      <h3 class="auth-title">Your Video Journey</h3>
+      <form id="authForm">
+        <div class="form-group">
+          <input type="text" name="identifier" autocomplete="username" placeholder="Username / Phone Number" class="form-input" />
+          <p class="error-message" id="identifierError"></p>
+        </div>
+        <div class="form-group">
+          <input type="password" name="password" autocomplete="current-password" placeholder="Password" class="form-input" />
+          <p class="error-message" id="passwordError"></p>
+        </div>
+        <button type="submit" class="submit-button">Continue</button>
+      </form>
+      <p class="auth-footer">
+        By registering, you'll be able to make and receive video calls with other users.
+      </p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      $('#featureCarousel').slick({
+        dots: false,
+        infinite: true,
+        speed: 500,
+        slidesToShow: 1,
+        autoplay: true,
+        autoplaySpeed: 2000,
+        fade: true,
+        arrows: false
+      });
+      
+      // Form submission would be handled here in a real implementation
+      $('#authForm').on('submit', function (e) {
+        e.preventDefault();
+
+        // Clear previous errors
+        $('#identifierError').text('');
+        $('#passwordError').text('');
+
+        const identifier = $('input[name="identifier"]').val().trim();
+        const password = $('input[name="password"]').val().trim();
+
+        let hasError = false;
+
+        if (!identifier) {
+          $('#identifierError').text('Username or phone number is required.');
+          hasError = true;
+        }
+        if (!password) {
+          $('#passwordError').text('Password is required.');
+          hasError = true;
+        }
+
+        if (hasError) return;
+
+        $.post('/login', { identifier, password })
+          .done(() => {
+            // Save to localStorage for socket connection later
+            localStorage.setItem('username', identifier);
+            window.location.href = '/home';
+          })
+          .fail((xhr) => {
+            const errorText = xhr.responseText || 'Login failed. Please try again.';
+            if (xhr.status === 401) {
+              $('#passwordError').text(errorText);
+            } else {
+              alert(errorText);
+            }
+          });
+      });
+    });
+  </script>
+</body>
+</html>
