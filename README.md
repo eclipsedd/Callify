@@ -62,7 +62,10 @@ Make sure `server.key` and `server.cert` are in the root folder so `server.js` c
 ## 📥 Installation
 
 1. Clone the repository or unzip the `.rar` files.
-2. Start the backend:
+   ```bash
+   git clone https://github.com/eclipsedd/Callify.git
+   ```
+3. Start the backend:
    ```bash
    cd backend
    npm install
@@ -70,7 +73,7 @@ Make sure `server.key` and `server.cert` are in the root folder so `server.js` c
    npm install express
    node server.js
    ```
-3. Start the frontend:
+4. Start the frontend:
    ```bash
    cd frontend
    npm install
